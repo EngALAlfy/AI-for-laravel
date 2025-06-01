@@ -1,7 +1,10 @@
 import requests
 import json
 
-API_KEY = "AIzaSyABCF9rU-BJl2O5hNzRKfkhhHkvq0ty_fA"
+API_KEY = os.getenv('GEMINI_API_KEY')
+if not API_KEY:
+    raise ValueError("Please set the GEMINI_API_KEY environment variable")
+
 API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={API_KEY}"
 
 # إعدادات التوليد + نوع البيانات المطلوبة
