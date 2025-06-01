@@ -1,5 +1,6 @@
 import requests
 import json
+import os
 
 API_KEY = os.getenv('GEMINI_API_KEY')
 if not API_KEY:
