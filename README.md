@@ -21,7 +21,9 @@ The system supports multiple tables including:
 
 ## Usage
 
-1. Set your Gemini API key in the script
+1. Set your Gemini API key as an environment variable:
+   ```bash
+   setx GEMINI_API_KEY "your-api-key-here"
 2. Run the script
 3. Enter your query in English
 4. Get the corresponding SQL query
