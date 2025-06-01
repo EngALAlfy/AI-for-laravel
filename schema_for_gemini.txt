@@ -1,0 +1,65 @@
+import requests
+import json
+
+API_KEY = "AIzaSyABCF9rU-BJl2O5hNzRKfkhhHkvq0ty_fA"
+API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={API_KEY}"
+
+# إعدادات التوليد + نوع البيانات المطلوبة
+generation_config = {
+    "temperature": 0.2,
+    "topP": 0.8,
+    "topK": 40,
+    "maxOutputTokens": 256,
+    "candidateCount": 1,
+    "responseMimeType": "application/json",
+    "responseSchema": {
+        "type": "OBJECT",
+        "properties": {
+            "sql": { "type": "STRING" }
+        },
+        "required": ["sql"]
+    }
+}
+
+# السؤال مع تعليمات صارمة
+prompt_text = (
+    "You are a SQL assistant.Database type in MySQL. Respond with ONLY a single valid SQL SELECT query inside a JSON object. "
+    "Do not include any DELETE, UPDATE, or INSERT queries. The output must match the schema provided.\n\n"
+    "Database schema:\n"
+    """
+    Table: areas (id, name, city_id, created_at, updated_at)
+
+    """
+    "Question: اختر اكتر الستخدمين طلبا في خلال هذا الشهر"
+)
+
+
+# بناء الطلب
+data = {
+    "contents": [
+        {
+            "parts": [{"text": prompt_text}]
+        }
+    ],
+    "generationConfig": generation_config
+}
+
+# إرسال الطلب
+response = requests.post(
+    API_URL,
+    headers={"Content-Type": "application/json"},
+    data=json.dumps(data)
+)
+
+# تحليل الرد
+if response.status_code == 200:
+    result = response.json()
+    try:
+        sql_query = json.loads(result['candidates'][0]['content']['parts'][0]['text'])["sql"]
+        print("Generated SQL Query:")
+        print(sql_query)
+    except Exception as e:
+        print("Unexpected response format:", result)
+else:
+    print("Error:", response.status_code)
+    print(response.text)
