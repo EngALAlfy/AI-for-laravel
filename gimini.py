@@ -2,11 +2,11 @@ import requests
 import json
 import os
 
-API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={API_KEY}"
 API_KEY = os.getenv('GEMINI_API_KEY')
-
 if not API_KEY:
     raise ValueError("Please set the GEMINI_API_KEY environment variable")
+
+API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={API_KEY}"
 
 # set generation config
 generation_config = {
