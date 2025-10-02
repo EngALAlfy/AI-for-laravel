@@ -1,85 +1,85 @@
-# mcp_server.py
-import sqlite3
 from fastmcp import FastMCP
+from .mysql_connector import MySQLConnector
+from .mcp_task_manager import MCPTaskManager
 
-app = FastMCP("SQLiteMCP")
+# ---------------- MCP App Setup ---------------- #
+app = FastMCP("MySQLMCP")
 
-# ---------------- Database Setup ---------------- #
-conn = sqlite3.connect("tasks.db", check_same_thread=False)
-cursor = conn.cursor()
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS lists (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE
+# Configure your MySQL connection here
+mysql_db = MySQLConnector(
+    host="localhost",
+    user="your_user",
+    password="your_password",
+    database="your_database"
 )
-""")
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS tasks (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    status TEXT DEFAULT 'pending',
-    due_date TEXT,
-    list_id INTEGER,
-    FOREIGN KEY(list_id) REFERENCES lists(id)
-)
-""")
-
-conn.commit()
-
-# ---------------- MCP Tools ---------------- #
+task_manager = MCPTaskManager(mysql_db)
 
 @app.tool()
 def add_task(title: str, list_name: str, due_date: str = None) -> str:
     """Add a task into a specific list"""
-    cursor.execute("INSERT OR IGNORE INTO lists (name) VALUES (?)", (list_name,))
-    conn.commit()
-
-    cursor.execute("SELECT id FROM lists WHERE name=?", (list_name,))
-    list_id = cursor.fetchone()[0]
-
-    cursor.execute(
-        "INSERT INTO tasks (title, due_date, list_id) VALUES (?, ?, ?)",
-        (title, due_date, list_id)
-    )
-    conn.commit()
-    return f"✅ Task '{title}' added to list '{list_name}' (due: {due_date or 'no date'})"
+    return task_manager.add_task(title, list_name, due_date)
 
 @app.tool()
 def list_tasks(list_name: str = None, due_date: str = None) -> list:
     """Return tasks filtered by list or due date"""
-    query = """SELECT tasks.title, tasks.status, tasks.due_date, lists.name
-               FROM tasks JOIN lists ON tasks.list_id = lists.id WHERE 1=1"""
-    params = []
-    if list_name:
-        query += " AND lists.name=?"
-        params.append(list_name)
-    if due_date:
-        query += " AND due_date=?"
-        params.append(due_date)
-
-    cursor.execute(query, tuple(params))
-    rows = cursor.fetchall()
-    return [
-        {"title": r[0], "status": r[1], "due_date": r[2], "list": r[3]}
-        for r in rows
-    ]
+    return task_manager.list_tasks(list_name, due_date)
 
 @app.tool()
 def update_task(title: str, status: str) -> str:
     """Update the status of a task"""
-    cursor.execute("UPDATE tasks SET status=? WHERE title=?", (status, title))
-    conn.commit()
-    return f"🔄 Task '{title}' updated to {status}"
+    return task_manager.update_task(title, status)
 
 @app.tool()
 def delete_task(title: str) -> str:
     """Delete a task by title"""
-    cursor.execute("DELETE FROM tasks WHERE title=?", (title,))
-    conn.commit()
-    return f"🗑️ Task '{title}' deleted"
+    return task_manager.delete_task(title)
+
+@app.tool()
+def update_task_status(task_id: int, status: str) -> str:
+    """Update the status of a task by id"""
+    return task_manager.update_status(task_id, status)
+
+@app.tool()
+def update_task_due_date(task_id: int, due_date: str) -> str:
+    """Update the due date of a task by id"""
+    return task_manager.update_due_date(task_id, due_date)
+
+@app.tool()
+def update_task_title(task_id: int, new_title: str) -> str:
+    """Update the title of a task by id"""
+    return task_manager.update_title(task_id, new_title)
+
+@app.tool()
+def update_task_list(task_id: int, new_list_name: str) -> str:
+    """Update the list of a task by id"""
+    return task_manager.update_list(task_id, new_list_name)
+
+@app.tool()
+def update_task_list_id(task_id: int, new_list_id: int) -> str:
+    """Move a task to another list by list id"""
+    return task_manager.update_list_id(task_id, new_list_id)
+
+@app.tool()
+def add_list(list_name: str) -> dict:
+    """Add a new list and return its id and name"""
+    return task_manager.add_list(list_name)
+
+@app.tool()
+def update_list(list_id: int, new_name: str) -> str:
+    """Rename a list by id"""
+    return task_manager.update_list(list_id, new_name)
+
+@app.tool()
+def delete_list(list_id: int) -> str:
+    """Delete a list and all its tasks by id"""
+    return task_manager.delete_list(list_id)
+
+@app.tool()
+def list_lists() -> list:
+    """Return all lists with their ids and names"""
+    return task_manager.list_lists()
 
 # ---------------- Run MCP Server ---------------- #
 if __name__ == "__main__":
-    app.run(transport="sse", host="127.0.0.1", port=9000)
+    app.run()
+    # app.run(transport="sse", host="127.0.0.1", port=9000)
